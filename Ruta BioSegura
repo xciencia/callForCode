@@ -1,0 +1,152 @@
+# Python 3.6 
+#
+#
+# Proyecto Ruta BioSegura   TEAM 22
+# Julio, 29, 2020
+#
+#
+# Implementar el algoritmo de dijkstra
+#
+# Para encontrar la ruta mós BioSegura, que garantice una recorrido por una ruta menos 
+# expuestas al contagio por COVID-19
+#
+
+import networkx as nx
+
+import types
+import pandas as pd
+from botocore.client import Config
+import ibm_boto3
+
+#
+#
+# Proyecto Ruta BioSegura   TEAM 22
+# Julio, 29, 2020
+#
+#
+# Implementar el algoritmo de dijkstra
+#
+# Para encontrar la ruta mós BioSegura, que garantice una recorrido por una ruta menos 
+# expuestas al contagio por COVID-19
+#
+​
+import networkx as nx
+​
+import types
+import pandas as pd
+from botocore.client import Config
+import ibm_boto3
+
+​
+df_contagio = pd.read_csv(body)
+df_contagio.head()
+​
+Provincia	Loc	Distrito	Contagiados
+0	Arequipa	ALT	ALTO SELVA ALEGRE	6
+1	Arequipa	ARE	AREQUIPA	10
+2	Arequipa	CAY	CAYMA	246
+3	Arequipa	CER	CERRO COLORADO	174
+4	Arequipa	CHA	CHARACATO	86
+# Sustituir Id (default) por las siglas que representan los distritos de la provincia
+​
+df_contagio.set_index(["Loc"], inplace=True)
+df_contagio.head()
+​
+Provincia	Distrito	Contagiados
+Loc			
+ALT	Arequipa	ALTO SELVA ALEGRE	6
+ARE	Arequipa	AREQUIPA	10
+CAY	Arequipa	CAYMA	246
+CER	Arequipa	CERRO COLORADO	174
+CHA	Arequipa	CHARACATO	86
+​
+body = client_b450994f8d324e32a57748f838f3d864.get_object(Bucket='rutabiosegura-donotdelete-pr-kagfxgbuil2ny3',Key='distancia.csv')['Body']
+# add missing __iter__ method, so pandas accepts body as file-like object
+if not hasattr(body, "__iter__"): body.__iter__ = types.MethodType( __iter__, body )
+​
+df_distancia = pd.read_csv(body)
+df_distancia.head()
+​
+ORI	DES	Kms
+0	ARE	CAY	3
+1	ARE	CHA	16
+2	ARE	LA	59
+3	ARE	MOL	19
+4	ARE	POC	33
+​
+body = client_b450994f8d324e32a57748f838f3d864.get_object(Bucket='rutabiosegura-donotdelete-pr-kagfxgbuil2ny3',Key='Arequipa_distritos_conexiones.csv')['Body']
+# add missing __iter__ method, so pandas accepts body as file-like object
+if not hasattr(body, "__iter__"): body.__iter__ = types.MethodType( __iter__, body )
+​
+df_conexion = pd.read_csv(body)
+df_conexion.head()
+​
+ORI	DES
+0	SAI	SAS
+1	SAI	VIT
+2	SAI	SAR
+3	VIT	SAI
+4	VIT	SAR
+# Aplicacion de teoria de grafos dirigidos (GD)
+​
+import networkx as nx
+​
+GD = nx.DiGraph()
+# Construccion del GD
+for r in df_conexion.iterrows():
+    GD.add_edge(r[1] ["ORI"], 
+                r[1] ["DES"],
+                
+                )
+# Mostrar los nodos
+GD.nodes(data=True)
+NodeDataView({'SAI': {}, 'SAS': {}, 'VIT': {}, 'SAR': {}, 'LA': {}, 'YUR': {}, 'UCH': {}, 'CER': {}, 'CAY': {}, 'SAT': {}, 'YAR': {}, 'YAN': {}, 'SAC': {}, 'ARE': {}, 'TIA': {}, 'SOC': {}, 'MOL': {}, 'QUE': {}, 'POL': {}, 'ALT': {}, 'CHI': {}, 'MIR': {}, 'MAR': {}, 'PAU': {}, 'SAB': {}, 'JAC': {}, 'JOS': {}, 'CHA': {}, 'POC': {}})
+# Grafico de los nodos 1
+pos = nx.spring_layout(GD)
+list_edges = list(GD.edges())
+nx.draw(GD, pos=pos, with_labels=True, edgelist=list_edges, node_size=300)
+
+# Rutas posibles entre distritos
+#
+# ejemplo: Origen: LA =  La Joya ; Destino : CHI = Chiguata
+​
+list(nx.all_shortest_paths(GD, source = "LA", target = "CHI", weight = None))
+​
+​
+[['LA', 'VIT', 'YUR', 'CAY', 'CHI'],
+ ['LA', 'UCH', 'YUR', 'CAY', 'CHI'],
+ ['LA', 'UCH', 'CER', 'CAY', 'CHI'],
+ ['LA', 'UCH', 'YAN', 'CAY', 'CHI'],
+ ['LA', 'VIT', 'YUR', 'SAT', 'CHI'],
+ ['LA', 'UCH', 'YUR', 'SAT', 'CHI'],
+ ['LA', 'YAR', 'POL', 'SAT', 'CHI'],
+ ['LA', 'YAR', 'MOL', 'CHA', 'CHI'],
+ ['LA', 'YAR', 'MOL', 'POC', 'CHI'],
+ ['LA', 'YAR', 'QUE', 'POC', 'CHI'],
+ ['LA', 'YAR', 'POL', 'POC', 'CHI']]
+# Funcion para determinar la ruta con menos contagios
+​
+def rutas_Bioseguras(Origen, Destino):
+    rutas = list(nx.all_shortest_paths(GD, source = Origen, target = Destino, weight = None))
+    for ruta in rutas:
+        total_contagiados_por_ruta = 0
+        for localidad in ruta:
+            total_contagiados_por_ruta = total_contagiados_por_ruta + df_contagio.loc[localidad]['Contagiados']
+        print(" Ruta BioSegura %s  #Contagiados: %s " % (ruta, total_contagiados_por_ruta)) 
+# Prueba de la funcion para determinar las BioRutas:
+​
+# Origen: La Joya
+# Destino: Chiguata
+​
+rutas_Bioseguras("LA", "CHI")
+ Ruta BioSegura ['LA', 'VIT', 'YUR', 'CAY', 'CHI']  #Contagiados: 308 
+ Ruta BioSegura ['LA', 'UCH', 'YUR', 'CAY', 'CHI']  #Contagiados: 308 
+ Ruta BioSegura ['LA', 'UCH', 'CER', 'CAY', 'CHI']  #Contagiados: 479 
+ Ruta BioSegura ['LA', 'UCH', 'YAN', 'CAY', 'CHI']  #Contagiados: 307 
+ Ruta BioSegura ['LA', 'VIT', 'YUR', 'SAT', 'CHI']  #Contagiados: 72 
+ Ruta BioSegura ['LA', 'UCH', 'YUR', 'SAT', 'CHI']  #Contagiados: 72 
+ Ruta BioSegura ['LA', 'YAR', 'POL', 'SAT', 'CHI']  #Contagiados: 101 
+ Ruta BioSegura ['LA', 'YAR', 'MOL', 'CHA', 'CHI']  #Contagiados: 683 
+ Ruta BioSegura ['LA', 'YAR', 'MOL', 'POC', 'CHI']  #Contagiados: 615 
+ Ruta BioSegura ['LA', 'YAR', 'QUE', 'POC', 'CHI']  #Contagiados: 100 
+ Ruta BioSegura ['LA', 'YAR', 'POL', 'POC', 'CHI']  #Contagiados: 109
